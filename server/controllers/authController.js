@@ -18,14 +18,14 @@ const registerUser = async (req, res) =>{
             })
         };
         const exist = await User.findOne({email})
-        if(exist){
+        if(!exist){
             return res.json({
                 error: 'email is taken'
             })
         }
 
         const user = await User.create({
-            name, email, password
+            username, email, password
         })
 
         return res.json(user)
