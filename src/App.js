@@ -27,6 +27,7 @@ function App() {
     setIsAuthenticated(false);
   };
 
+  
 
   // Homepage Component
   const Homepage = () => {
@@ -37,6 +38,11 @@ function App() {
       axios.get('/')
       setIsAuthenticated(true);
       navigate('/dashboard');
+    };
+
+    const toRegisterPage = (e) => {
+      e.preventDefault()
+      navigate('/register')
     };
 
     return (
@@ -114,6 +120,9 @@ function App() {
                 <span>Sign In</span>
                 <div className="button-glow"></div>
               </button>
+            </form>
+            <br></br>
+            <form className="registerButton" onSubmit={toRegisterPage}>
               <button type="submit">
                 <span>Create New Account</span>
                 <div className="button-glow"></div>
@@ -126,6 +135,8 @@ function App() {
   };
 
   return (
+    <>
+    <Toaster position='bottom-right' toastOptions={{duration: 2000}} />
     <Router>
       <Routes>
         <Route path="/" element={<Homepage />} />
@@ -139,8 +150,19 @@ function App() {
             )
           } 
         />
+        <Route 
+          path="/register" 
+          element={
+            isAuthenticated ? (
+              <Register onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
       </Routes>
     </Router>
+    </>
   );
 }
 
