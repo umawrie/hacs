@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css';
 import Dashboard from './Dashboard';
+import Register from './Register'
 import axios from 'axios';
+import { Toaster } from 'react-hot-toast'
 
 axios.defaults.baseURL = 'http://localhost:8000';
 axios.defaults.withCredentials = true;
@@ -24,6 +26,7 @@ function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
   };
+
 
   // Homepage Component
   const Homepage = () => {
