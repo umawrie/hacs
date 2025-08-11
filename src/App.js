@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, data } from 'react-router-dom';
 import './App.css';
 import Dashboard from './Dashboard';
 import Register from './Register'
 import axios from 'axios';
-import { Toaster } from 'react-hot-toast'
+import { Toaster, toast } from 'react-hot-toast'
 
 axios.defaults.baseURL = 'http://localhost:8000';
 axios.defaults.withCredentials = true;
@@ -12,6 +12,10 @@ axios.defaults.withCredentials = true;
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [data, setData] = useState({
+    email: '',
+    password: ''
+  })
 
   const handleClickAnywhere = () => {
     if (!isAnimating) {
@@ -30,14 +34,27 @@ function App() {
   
 
   // Homepage Component
-  const Homepage = () => {
+  const Homepage =  () => {
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
       e.preventDefault();
-      axios.get('/')
-      setIsAuthenticated(true);
-      navigate('/dashboard');
+      const {email, password} = data
+      try {
+        const{data} = await axios.post('/', {
+          email,
+          password
+        })
+        if(data.error){
+          toast.error(data.error)
+        } else{
+          setIsAuthenticated(true);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        
+      }
+      
     };
 
     const toRegisterPage = (e) => {
@@ -95,6 +112,7 @@ function App() {
             </div>
           </div>
         ) : (
+          
           <div className="login-screen">
             <div className="login-header">
               <div className="login-logo">
@@ -107,13 +125,13 @@ function App() {
             </div>
             <form className="login-form" onSubmit={handleLogin}>
               <div className="input-group">
-                <label>Username</label>
-                <input type="text" placeholder="Enter your username" required />
+                <label>Email</label>
+                <input type="text" placeholder="Enter your email" value = {data.email} onChange = {(e) => setData({...data, email: e.target.value})} required />
                 <div className="input-border"></div>
               </div>
               <div className="input-group">
                 <label>Password</label>
-                <input type="password" placeholder="Enter your password" required />
+                <input type="password" placeholder="Enter your password" value = {data.password} onChange = {(e) => setData({...data, password: e.target.value})} required />
                 <div className="input-border"></div>
               </div>
               <button type="submit">
