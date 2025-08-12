@@ -24,3 +24,4 @@ yarn-error.log*
 
 # Server folder (contains node_modules which should not be tracked)
 /server/
+server/.env

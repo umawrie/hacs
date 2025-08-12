@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css';
 import Dashboard from './Dashboard';
+import axios from 'axios';
+
+axios.defaults.baseURL = 'http://localhost:8000';
+axios.defaults.withCredentials = true;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,6 +31,7 @@ function App() {
 
     const handleLogin = (e) => {
       e.preventDefault();
+      axios.get('/')
       setIsAuthenticated(true);
       navigate('/dashboard');
     };
@@ -94,6 +99,10 @@ function App() {
               </div>
               <button type="submit">
                 <span>Sign In</span>
+                <div className="button-glow"></div>
+              </button>
+              <button type="submit">
+                <span>Create New Account</span>
                 <div className="button-glow"></div>
               </button>
             </form>
