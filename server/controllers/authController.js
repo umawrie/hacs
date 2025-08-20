@@ -24,6 +24,11 @@ const registerUser = async (req, res) =>{
                 error: 'email is taken'
             })
         }
+        if(!(email.endsWith(".com") || email.endsWith(".org")) || !email.includes("@")){
+            return res.json({
+                error: 'please enter a valid email'
+            })
+        }
 
         const hashedPassword = await hashPassword(password)
         const user = await User.create({
