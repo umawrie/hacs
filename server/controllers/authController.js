@@ -68,6 +68,13 @@ const loginUser = async (req, res) => {
     }
 }
 
+/*
+const setData = async (req, res) => {
+    try {
+        const {adr, adrdiff,  revenue, revdiff,  vsrevpar, vsrevdiff, occupancy, occdiff, guestsat, guestdiff}
+    }
+}*/
+
 module.exports = {
     test,
     registerUser,
