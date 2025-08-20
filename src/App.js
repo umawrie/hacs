@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, data } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import Dashboard from './Dashboard';
 import Register from './Register'
@@ -9,73 +8,138 @@ import { Toaster, toast } from 'react-hot-toast'
 axios.defaults.baseURL = 'http://localhost:8000';
 axios.defaults.withCredentials = true;
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [data, setData] = useState({
+// Separate LoginScreen component to prevent interference
+const LoginScreen = ({ onLogin, onRegister }) => {
+  const [formData, setFormData] = useState({
     email: '',
     password: ''
-  })
+  });
 
-  const handleClickAnywhere = () => {
-    if (!isAnimating) {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setIsAuthenticated(true);
-        setIsAnimating(false);
-      }, 800);
-    }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onLogin(formData);
   };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="login-screen">
+      <div className="login-header">
+        <div className="login-logo">
+          <img src="/NEWHACSLogo.jpg" alt="HACS Logo" className="login-logo-img" />
+        </div>
+        <h2>System Access</h2>
+        <div className="login-status">
+          <div className="status-indicator"></div>
+        </div>
+      </div>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <div className="input-group">
+          <label>Email</label>
+          <input 
+            type="text" 
+            placeholder="Enter your email" 
+            value={formData.email} 
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            required 
+          />
+          <div className="input-border"></div>
+        </div>
+        <div className="input-group">
+          <label>Password</label>
+          <input 
+            type="password" 
+            placeholder="Enter your password" 
+            value={formData.password} 
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            required 
+          />
+          <div className="input-border"></div>
+        </div>
+        <button type="submit">
+          <span>Sign In</span>
+          <div className="button-glow"></div>
+        </button>
+      </form>
+      <br></br>
+      <div className="registerButton">
+        <button type="button" onClick={onRegister}>
+          <span>Create New Account</span>
+          <div className="button-glow"></div>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentView, setCurrentView] = useState('welcome'); // 'welcome', 'login', 'dashboard'
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setCurrentView('welcome');
   };
 
-  
+  const goToLogin = () => {
+    console.log('goToLogin called, setting currentView to login');
+    setCurrentView('login');
+  };
+
+  // Monitor currentView changes
+  useEffect(() => {
+    console.log('currentView changed to:', currentView);
+  }, [currentView]);
 
   // Homepage Component
-  const Homepage =  () => {
-    const navigate = useNavigate();
-
-    const handleLogin = async (e) => {
-      e.preventDefault();
-      const {email, password} = data
+  const Homepage = () => {
+    const handleLogin = async (formData) => {
+      const {email, password} = formData;
+      console.log('Attempting login with:', { email, password });
       try {
-        const{data} = await axios.post('/', {
+        console.log('Making POST request to /api/auth/login');
+        const response = await axios.post('/api/auth/login', {
           email,
           password
         })
-        if(data.error){
-          toast.error(data.error)
+        console.log('Login response:', response.data);
+        if(response.data.error){
+          toast.error(response.data.error)
         } else{
           setIsAuthenticated(true);
-          navigate('/dashboard');
+          setCurrentView('dashboard');
         }
       } catch (error) {
-        
+        console.error('Login error details:', error);
+        console.error('Error response:', error.response);
+        console.error('Error message:', error.message);
+        toast.error('Network error. Please try again.');
       }
-      
     };
 
     const toRegisterPage = (e) => {
       e.preventDefault()
-      navigate('/register')
+      console.log('Setting currentView to register');
+      setCurrentView('register')
     };
 
-    return (
-      <div className="App" onClick={!isAuthenticated ? handleClickAnywhere : undefined}>
-        {/* Professional Grid Background */}
-        <div className="grid-background"></div>
-        
-        {/* Subtle Particles */}
-        <div className="particles">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className={`particle particle-${i % 3}`}></div>
-          ))}
-        </div>
+    // Render welcome screen
+    if (currentView === 'welcome') {
+      return (
+        <div className="App">
+          {/* Professional Grid Background */}
+          <div className="grid-background"></div>
+          
+          {/* Subtle Particles */}
+          <div className="particles">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className={`particle particle-${i % 3}`}></div>
+            ))}
+          </div>
 
-        {!isAuthenticated ? (
-          <div className={`welcome-screen ${isAnimating ? 'fade-out' : ''}`}>
+          <div className="welcome-screen" onClick={goToLogin}>
             <div className="hero-content">
               <div className="logo-container">
                 <div className="logo-wrapper">
@@ -101,75 +165,65 @@ function App() {
               </div>
             </div>
           </div>
-        ) : (
+        </div>
+      );
+    }
+
+    // Render login screen
+    if (currentView === 'login') {
+      return (
+        <div className="App">
+          {/* Professional Grid Background */}
+          <div className="grid-background"></div>
           
-          <div className="login-screen">
-            <div className="login-header">
-              <div className="login-logo">
-                <img src="/NEWHACSLogo.jpg" alt="HACS Logo" className="login-logo-img" />
-              </div>
-              <h2>System Access</h2>
-              <div className="login-status">
-                <div className="status-indicator"></div>
-              </div>
-            </div>
-            <form className="login-form" onSubmit={handleLogin}>
-              <div className="input-group">
-                <label>Email</label>
-                <input type="text" placeholder="Enter your email" value = {data.email} onChange = {(e) => setData({...data, email: e.target.value})} required />
-                <div className="input-border"></div>
-              </div>
-              <div className="input-group">
-                <label>Password</label>
-                <input type="password" placeholder="Enter your password" value = {data.password} onChange = {(e) => setData({...data, password: e.target.value})} required />
-                <div className="input-border"></div>
-              </div>
-              <button type="submit">
-                <span>Sign In</span>
-                <div className="button-glow"></div>
-              </button>
-            </form>
-            <br></br>
-            <form className="registerButton" onSubmit={toRegisterPage}>
-              <button type="submit">
-                <span>Create New Account</span>
-                <div className="button-glow"></div>
-              </button>
-            </form>
+          {/* Subtle Particles */}
+          <div className="particles">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className={`particle particle-${i % 3}`}></div>
+            ))}
           </div>
-        )}
-      </div>
-    );
+
+          <LoginScreen 
+            onLogin={handleLogin}
+            onRegister={toRegisterPage}
+          />
+        </div>
+      );
+    }
+
+    // Render register screen
+    if (currentView === 'register') {
+      console.log('Rendering register screen');
+      return (
+        <div className="App">
+          {/* Professional Grid Background */}
+          <div className="grid-background"></div>
+          
+          {/* Subtle Particles */}
+          <div className="particles">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className={`particle particle-${i % 3}`}></div>
+            ))}
+          </div>
+
+          <Register onBackToLogin={() => setCurrentView('login')} />
+        </div>
+      );
+    }
+
+    // Render dashboard
+    if (currentView === 'dashboard') {
+      return <Dashboard onLogout={handleLogout} />;
+    }
+
+    // This should never happen, but just in case
+    return null;
   };
 
   return (
     <>
     <Toaster position='bottom-right' toastOptions={{duration: 2000}} />
-    <Router>
-      <Routes>
-        <Route path="/" element={<Homepage />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            isAuthenticated ? (
-              <Dashboard onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          } 
-        />
-        <Route 
-          path="/register" 
-          element={
-            isAuthenticated ? (
-              <Register onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          } 
-        />
-      </Routes>
-    </Router>
+    <Homepage />
     </>
   );
 }
