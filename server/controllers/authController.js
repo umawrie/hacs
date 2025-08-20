@@ -24,7 +24,7 @@ const registerUser = async (req, res) =>{
                 error: 'email is taken'
             })
         }
-        if(!(email.endsWith(".com") || email.endsWith(".org")) || !email.includes("@")){
+        if(!(email.endsWith(".com") || email.endsWith(".org") || email.endsWith(".net") || email.endsWith(".edu") || email.endsWith(".gov")) || !email.includes("@")){
             return res.json({
                 error: 'please enter a valid email'
             })
