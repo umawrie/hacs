@@ -1,53 +1,58 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = ({ onLogout, currentUser }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [hoveredWidget, setHoveredWidget] = useState(null);
   const [analyticsDropdownOpen, setAnalyticsDropdownOpen] = useState(false);
-  const [settings, setSettings] = useState({
-    profile: {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@hacs.com',
-      profilePhoto: null
-    },
-    account: {
-      language: 'en',
-      region: 'US',
-      timezone: 'America/New_York',
-      dateFormat: 'MM/DD/YYYY',
-      numberFormat: '1,234.56'
-    },
-    notifications: {
-      email: true,
-      push: false,
-      sms: false,
-      marketing: false,
-      updates: true,
-      security: true
-    },
-    privacy: {
-      showEmail: false,
-      showActivity: true,
-      allowAnalytics: true
-    },
-    security: {
-      twoFactorEnabled: false,
-      sessionTimeout: 3600,
-      requirePasswordChange: false
-    },
-    billing: {
-      plan: 'Professional',
-      nextBilling: '2024-02-01',
-      autoRenew: true
-    },
-    site: {
-      logo: 'HACS',
-      primaryColor: '#3b82f6',
-      customDomain: '',
-      theme: 'dark'
+  const [settings, setSettings] = useState(() => {
+    if (currentUser && currentUser.settings) {
+      return currentUser.settings;
     }
+    return {
+      profile: {
+        firstName: currentUser?.firstName || 'User',
+        lastName: currentUser?.lastName || '',
+        email: currentUser?.email || 'user@hacs.com',
+        profilePhoto: currentUser?.profilePhoto || null
+      },
+      account: {
+        language: 'en',
+        region: 'US',
+        timezone: 'America/New_York',
+        dateFormat: 'MM/DD/YYYY',
+        numberFormat: '1,234.56'
+      },
+      notifications: {
+        email: true,
+        push: false,
+        sms: false,
+        marketing: false,
+        updates: true,
+        security: true
+      },
+      privacy: {
+        showEmail: false,
+        showActivity: true,
+        allowAnalytics: true
+      },
+      security: {
+        twoFactorEnabled: false,
+        sessionTimeout: 3600,
+        requirePasswordChange: false
+      },
+      billing: {
+        plan: 'Professional',
+        nextBilling: '2024-02-01',
+        autoRenew: true
+      },
+      site: {
+        logo: 'HACS',
+        primaryColor: '#3b82f6',
+        customDomain: '',
+        theme: 'dark'
+      }
+    };
   });
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeSettingsSection, setActiveSettingsSection] = useState('overview');
@@ -64,6 +69,13 @@ const Dashboard = ({ onLogout }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Update settings when currentUser changes
+  useEffect(() => {
+    if (currentUser && currentUser.settings) {
+      setSettings(currentUser.settings);
+    }
+  }, [currentUser]);
+
   const handleSettingsChange = (category, key, value) => {
     setSettings(prev => ({
       ...prev,
@@ -73,6 +85,30 @@ const Dashboard = ({ onLogout }) => {
       }
     }));
     
+    // Update currentUser in localStorage when settings change
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        settings: {
+          ...currentUser.settings,
+          [category]: {
+            ...currentUser.settings[category],
+            [key]: value
+          }
+        }
+      };
+      
+      // Update localStorage
+      localStorage.setItem('hacs_current_user', JSON.stringify(updatedUser));
+      
+      // Update users array in localStorage
+      const allUsers = JSON.parse(localStorage.getItem('hacs_users') || '[]');
+      const updatedUsers = allUsers.map(user => 
+        user.id === currentUser.id ? updatedUser : user
+      );
+      localStorage.setItem('hacs_users', JSON.stringify(updatedUsers));
+    }
+    
     // Auto-save after each change
     setTimeout(() => {
       saveSettings();
@@ -80,8 +116,10 @@ const Dashboard = ({ onLogout }) => {
   };
 
   const saveSettings = async () => {
+    if (!currentUser) return;
+    
     try {
-      const response = await fetch('http://localhost:5001/api/settings', {
+      const response = await fetch(`http://localhost:8000/api/auth/user/${currentUser._id}/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +128,14 @@ const Dashboard = ({ onLogout }) => {
       });
       
       if (response.ok) {
+        const data = await response.json();
         setShowSuccessMessage(true);
+        
+        // Update currentUser with new settings
+        if (data.user) {
+          const updatedUser = { ...currentUser, settings: data.user.settings };
+          localStorage.setItem('hacs_current_user', JSON.stringify(updatedUser));
+        }
         
         // Hide success message after 3 seconds
         setTimeout(() => {
@@ -205,10 +250,25 @@ const Dashboard = ({ onLogout }) => {
                 <div className="setting-item">
                   <label>Profile Photo</label>
                   <div className="profile-photo-upload">
+                    {settings.profile.profilePhoto && (
+                      <div className="profile-photo-preview">
+                        <img 
+                          src={settings.profile.profilePhoto} 
+                          alt="Profile Preview" 
+                          className="profile-photo-preview-img"
+                        />
+                      </div>
+                    )}
                     <input 
                       type="file" 
                       accept="image/*"
-                      onChange={(e) => handleSettingsChange('profile', 'profilePhoto', e.target.files[0])}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const imageUrl = URL.createObjectURL(file);
+                          handleSettingsChange('profile', 'profilePhoto', imageUrl);
+                        }
+                      }}
                     />
                     <span className="upload-hint">Upload a profile photo</span>
                   </div>
@@ -565,22 +625,12 @@ const Dashboard = ({ onLogout }) => {
     return renderSettingsDetail(activeSettingsSection);
   };
 
-  const handleLogout = () => {
-    // In a real app, you'd clear authentication tokens here
-    onLogout();
-  };
-
   const handleWidgetHover = (widgetId) => {
     setHoveredWidget(widgetId);
   };
 
   const handleWidgetLeave = () => {
     setHoveredWidget(null);
-  };
-
-  const navigateToTab = (tabName) => {
-    setActiveTab(tabName);
-    setAnalyticsDropdownOpen(false);
   };
 
   const toggleAnalyticsDropdown = () => {
@@ -592,16 +642,27 @@ const Dashboard = ({ onLogout }) => {
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
-          <img src="/NEWHACSLogo.jpg" alt="HACS Logo" className="header-logo" />
+                          <img src={process.env.PUBLIC_URL + '/NEWHACSLogo.jpg'} alt="HACS Logo" className="header-logo" />
           <h1>Hospitality Analytics Cloud Services</h1>
         </div>
         <div className="header-right">
-          <div className="user-info">
-            <span className="user-name">{settings.profile.firstName}</span>
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
+          {settings.profile.profilePhoto ? (
+            <img 
+              src={settings.profile.profilePhoto} 
+              alt="Profile" 
+              className="profile-photo-small"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className={`profile-photo-placeholder ${settings.profile.profilePhoto ? 'hidden' : ''}`}>
+            {settings.profile.firstName ? settings.profile.firstName.charAt(0).toUpperCase() : 'U'}
           </div>
+          <button onClick={onLogout} className="logout-btn">
+            Logout
+          </button>
         </div>
       </header>
 
@@ -616,30 +677,48 @@ const Dashboard = ({ onLogout }) => {
         <div className="nav-tab-wrapper">
           <div className="nav-tab-container">
             <button 
-              className={`nav-tab ${activeTab === 'resources' ? 'active' : ''}`}
+              className={`nav-tab ${activeTab === 'benchmarking' ? 'active' : ''}`}
               onClick={toggleAnalyticsDropdown}
             >
-              Resources
+              Benchmarking
             </button>
             {analyticsDropdownOpen && (
               <div className="nav-dropdown" ref={analyticsDropdownRef}>
                 <div 
                   className="dropdown-item"
                   onClick={() => {
-                    setActiveTab('analytics');
+                    setActiveTab('adr-reports');
                     setAnalyticsDropdownOpen(false);
                   }}
                 >
-                  Analytics
+                  ADR Reports
                 </div>
                 <div 
                   className="dropdown-item"
                   onClick={() => {
-                    setActiveTab('reports');
+                    setActiveTab('occupancy-rate');
                     setAnalyticsDropdownOpen(false);
                   }}
                 >
-                  Reports
+                  Occupancy Rate
+                </div>
+                <div 
+                  className="dropdown-item"
+                  onClick={() => {
+                    setActiveTab('adr-vs-revpar');
+                    setAnalyticsDropdownOpen(false);
+                  }}
+                >
+                  ADR vs RevPAR
+                </div>
+                <div 
+                  className="dropdown-item"
+                  onClick={() => {
+                    setActiveTab('revenue');
+                    setAnalyticsDropdownOpen(false);
+                  }}
+                >
+                  Revenue
                 </div>
               </div>
             )}
@@ -661,62 +740,62 @@ const Dashboard = ({ onLogout }) => {
             
             <div className="stats-grid">
               <div 
-                className="stat-card"
+                className="stat-card clickable"
                 onMouseEnter={() => handleWidgetHover('occupancy')}
                 onMouseLeave={handleWidgetLeave}
+                onClick={() => setActiveTab('occupancy-rate')}
               >
                 <h3>Occupancy Rate</h3>
                 <p className="stat-number">87%</p>
                 <p className="stat-change positive">+5% this month</p>
                 {hoveredWidget === 'occupancy' && (
                   <div className="widget-actions">
-                    <button onClick={() => setActiveTab('analytics')}>Analytics</button>
-                    <button onClick={() => setActiveTab('reports')}>Reports</button>
+                    <button onClick={() => setActiveTab('occupancy-rate')}>View Details</button>
                   </div>
                 )}
               </div>
               <div 
-                className="stat-card"
+                className="stat-card clickable"
                 onMouseEnter={() => handleWidgetHover('revenue')}
                 onMouseLeave={handleWidgetLeave}
+                onClick={() => setActiveTab('revenue')}
               >
                 <h3>Revenue</h3>
                 <p className="stat-number">$2.4M</p>
                 <p className="stat-change positive">+12% this month</p>
                 {hoveredWidget === 'revenue' && (
                   <div className="widget-actions">
-                    <button onClick={() => setActiveTab('analytics')}>Analytics</button>
-                    <button onClick={() => setActiveTab('reports')}>Reports</button>
+                    <button onClick={() => setActiveTab('revenue')}>View Details</button>
                   </div>
                 )}
               </div>
               <div 
-                className="stat-card"
+                className="stat-card clickable"
                 onMouseEnter={() => handleWidgetHover('adr')}
                 onMouseLeave={handleWidgetLeave}
+                onClick={() => setActiveTab('adr-reports')}
               >
                 <h3>ADR Reports</h3>
                 <p className="stat-number">$189</p>
                 <p className="stat-change positive">+8% this month</p>
                 {hoveredWidget === 'adr' && (
                   <div className="widget-actions">
-                    <button onClick={() => setActiveTab('analytics')}>Analytics</button>
-                    <button onClick={() => setActiveTab('reports')}>Reports</button>
+                    <button onClick={() => setActiveTab('adr-reports')}>View Details</button>
                   </div>
                 )}
               </div>
               <div 
-                className="stat-card"
+                className="stat-card clickable"
                 onMouseEnter={() => handleWidgetHover('revpar')}
                 onMouseLeave={handleWidgetLeave}
+                onClick={() => setActiveTab('adr-vs-revpar')}
               >
                 <h3>ADR vs RevPAR</h3>
                 <p className="stat-number">$164</p>
                 <p className="stat-change positive">+6% this month</p>
                 {hoveredWidget === 'revpar' && (
                   <div className="widget-actions">
-                    <button onClick={() => setActiveTab('analytics')}>Analytics</button>
-                    <button onClick={() => setActiveTab('reports')}>Reports</button>
+                    <button onClick={() => setActiveTab('adr-vs-revpar')}>View Details</button>
                   </div>
                 )}
               </div>
@@ -733,72 +812,20 @@ const Dashboard = ({ onLogout }) => {
           </div>
         )}
 
-        {activeTab === 'analytics' && (
+        {activeTab === 'adr-reports' && (
           <div className="dashboard-content">
-            <h2>Analytics Dashboard</h2>
-            <p>Comprehensive analytics and insights for your hospitality metrics</p>
+            <h2>ADR Reports Dashboard</h2>
             
             <div className="metrics-grid">
               <div className="metric-section">
-                <h3>ADR Reports Analytics</h3>
                 <div className="metric-content">
                   <div className="metric-card">
                     <h4>Trend Analysis</h4>
-                    <p>Analyze ADR trends over time and identify patterns</p>
                     <button className="metric-btn">View Trends</button>
                   </div>
                   <div className="metric-card">
                     <h4>Competitive Analysis</h4>
-                    <p>Compare your ADR performance against competitors</p>
                     <button className="metric-btn">Compare</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>Revenue Analytics</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Revenue Trends</h4>
-                    <p>Track revenue growth and seasonal patterns</p>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Revenue Forecasting</h4>
-                    <p>Predict future revenue based on historical data</p>
-                    <button className="metric-btn">Forecast</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>ADR vs RevPAR Analytics</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Performance Comparison</h4>
-                    <p>Analyze the relationship between ADR and RevPAR</p>
-                    <button className="metric-btn">Compare</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Optimization Insights</h4>
-                    <p>Identify opportunities to improve RevPAR</p>
-                    <button className="metric-btn">Optimize</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>Occupancy Rate Analytics</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Occupancy Trends</h4>
-                    <p>Track occupancy patterns and seasonal variations</p>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Capacity Planning</h4>
-                    <p>Optimize room availability and pricing strategies</p>
-                    <button className="metric-btn">Plan</button>
                   </div>
                 </div>
               </div>
@@ -806,72 +833,70 @@ const Dashboard = ({ onLogout }) => {
           </div>
         )}
 
-        {activeTab === 'reports' && (
+        {activeTab === 'occupancy-rate' && (
           <div className="dashboard-content">
-            <h2>Reports Dashboard</h2>
-            <p>Generate comprehensive reports and insights for your hospitality operations</p>
+            <h2>Occupancy Rate Dashboard</h2>
             
             <div className="metrics-grid">
               <div className="metric-section">
-                <h3>ADR Reports</h3>
                 <div className="metric-content">
                   <div className="metric-card">
-                    <h4>Monthly ADR Report</h4>
-                    <p>Comprehensive monthly ADR performance summary</p>
-                    <button className="metric-btn">Generate Report</button>
+                    <h4>Trend Analysis</h4>
+                    <button className="metric-btn">View Trends</button>
                   </div>
                   <div className="metric-card">
-                    <h4>ADR Performance Analysis</h4>
-                    <p>Detailed analysis of ADR performance metrics</p>
-                    <button className="metric-btn">View Analysis</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>Revenue Reports</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Revenue Summary Report</h4>
-                    <p>Monthly revenue summary and breakdown</p>
-                    <button className="metric-btn">Generate Report</button>
+                    <h4>Competitive Analysis</h4>
+                    <button className="metric-btn">Compare</button>
                   </div>
                   <div className="metric-card">
-                    <h4>Revenue Growth Report</h4>
-                    <p>Track revenue growth and performance trends</p>
-                    <button className="metric-btn">View Growth</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>ADR vs RevPAR Reports</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Performance Comparison Report</h4>
-                    <p>Compare ADR and RevPAR performance</p>
-                    <button className="metric-btn">Generate Report</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Optimization Report</h4>
-                    <p>Identify RevPAR optimization opportunities</p>
-                    <button className="metric-btn">View Report</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="metric-section">
-                <h3>Occupancy Reports</h3>
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Occupancy Summary Report</h4>
-                    <p>Monthly occupancy performance summary</p>
-                    <button className="metric-btn">Generate Report</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Occupancy Prediction Report</h4>
-                    <p>Forecast future occupancy rates</p>
+                    <h4>Occupancy Prediction</h4>
                     <button className="metric-btn">View Prediction</button>
+                  </div>
+                  <div className="metric-card">
+                    <h4>Occupancy Index</h4>
+                    <button className="metric-btn">View Index</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'adr-vs-revpar' && (
+          <div className="dashboard-content">
+            <h2>ADR vs RevPAR Dashboard</h2>
+            
+            <div className="metrics-grid">
+              <div className="metric-section">
+                <div className="metric-content">
+                  <div className="metric-card">
+                    <h4>Trend Analysis</h4>
+                    <button className="metric-btn">View Trends</button>
+                  </div>
+                  <div className="metric-card">
+                    <h4>Competitive Analysis</h4>
+                    <button className="metric-btn">Compare</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'revenue' && (
+          <div className="dashboard-content">
+            <h2>Revenue Dashboard</h2>
+            
+            <div className="metrics-grid">
+              <div className="metric-section">
+                <div className="metric-content">
+                  <div className="metric-card">
+                    <h4>Trend Analysis</h4>
+                    <button className="metric-btn">View Trends</button>
+                  </div>
+                  <div className="metric-card">
+                    <h4>Competitive Analysis</h4>
+                    <button className="metric-btn">Compare</button>
                   </div>
                 </div>
               </div>
@@ -890,6 +915,6 @@ const Dashboard = ({ onLogout }) => {
       </main>
     </div>
   );
-}
-
+  }
+ 
 export default Dashboard; 

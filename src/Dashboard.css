@@ -30,21 +30,22 @@
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
   overflow-x: hidden;
+  position: relative;
+  z-index: 1; /* Low z-index so it doesn't cover navigation */
 }
 
-/* Header */
+/* Header styles */
 .dashboard-header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  padding: 1rem 2rem;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 9998; /* High z-index but below the dropdown */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 2rem;
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-  backdrop-filter: blur(20px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .header-left {
@@ -72,9 +73,58 @@
   letter-spacing: -0.02em;
 }
 
+/* Header right side styling */
 .header-right {
   display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+/* Profile photo styling */
+.profile-photo-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: block;
+  overflow: hidden;
+}
+
+.profile-photo-small:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: scale(1.05);
+}
+
+/* Profile photo placeholder when no photo is uploaded */
+.profile-photo-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.profile-photo-placeholder.hidden {
+  display: none;
+}
+
+.profile-photo-placeholder:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: scale(1.05);
 }
 
 .user-info {
@@ -115,7 +165,7 @@
     0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
-/* Navigation */
+/* Navigation styles */
 .dashboard-nav {
   display: flex;
   gap: 0.5rem;
@@ -124,6 +174,8 @@
   border-bottom: 1px solid rgba(59, 130, 246, 0.15);
   backdrop-filter: blur(15px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 9998; /* High z-index but below the dropdown */
 }
 
 .nav-tab {
@@ -169,26 +221,25 @@
   overflow-y: auto;
 }
 
+/* Active tab content should not interfere with dropdown */
 .dashboard-content {
-  max-width: 1400px;
-  margin: 0 auto;
+  position: relative;
+  z-index: 1; /* Lower z-index so it doesn't cover the dropdown */
+  margin-top: 2rem;
 }
 
+/* Ensure active tab content is properly positioned */
 .dashboard-content h2 {
-  font-size: 2rem;
-  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.02em;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
-.dashboard-content > p {
-  font-size: 1.1rem;
+.dashboard-content p {
   color: var(--text-secondary);
   margin-bottom: 2rem;
-  line-height: 1.6;
-  opacity: 0.9;
+  font-size: 1.1rem;
 }
 
 /* Stats Grid */
@@ -581,46 +632,98 @@
 .nav-tab-container {
   position: relative;
   display: inline-block;
+  z-index: 9999;
 }
 
+/* Dropdown Animation */
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure dropdown is always visible */
 .nav-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(15, 23, 42, 0.98); /* Increased opacity from 0.95 to 0.98 */
+  border: 1px solid rgba(59, 130, 246, 0.5); /* Increased border opacity from 0.3 to 0.5 */
   border-radius: 8px;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(59, 130, 246, 0.2);
-  z-index: 1000;
+    0 8px 32px rgba(0, 0, 0, 0.5), /* Increased shadow opacity from 0.3 to 0.5 */
+    0 0 0 1px rgba(59, 130, 246, 0.3); /* Increased border glow from 0.2 to 0.3 */
+  z-index: 9999; /* Increased from 1000 to 9999 to ensure it's above everything */
   min-width: 200px;
   padding: 0.5rem 0;
   margin-top: 0.5rem;
   animation: dropdownFadeIn 0.2s ease-out;
+  /* Force the dropdown to be above everything */
+  isolation: isolate;
+  /* Ensure it's not clipped by parent containers */
+  overflow: visible;
 }
 
+/* Add a subtle background to the entire dropdown for better visibility */
+.nav-dropdown::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(15, 23, 42, 0.02));
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Add a subtle glow effect around the dropdown */
+.nav-dropdown::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), transparent);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: -2;
+  opacity: 0.6;
+}
+
+/* Ensure text is always readable */
 .nav-dropdown .dropdown-item {
   position: relative;
   padding: 0.75rem 1rem;
-  color: var(--text-secondary);
+  color: #ffffff; /* Changed from var(--text-secondary) to white for better contrast */
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-}
-
-.nav-dropdown .dropdown-item:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  font-weight: 500; /* Added font weight for better readability */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Added text shadow for better contrast */
+  background: rgba(15, 23, 42, 0.95); /* Added subtle background to each item */
 }
 
 .nav-dropdown .dropdown-item:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--text-primary);
+  background: rgba(59, 130, 246, 0.25); /* Increased hover background opacity for better visibility */
+  color: #ffffff; /* Keep white color on hover */
   padding-left: 1.25rem;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3); /* Added inner glow on hover */
+}
+
+.nav-dropdown .dropdown-item:last-child {
+  border-bottom: none; /* Remove border from last item */
 }
 
 .dropdown-arrow {
@@ -1339,17 +1442,22 @@
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
+  position: relative;
+  z-index: 1; /* Lower z-index so it doesn't cover the dropdown */
 }
 
+/* Metric sections should not interfere with dropdown */
 .metric-section {
-  background: rgba(51, 65, 85, 0.4);
+  background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
-  backdrop-filter: blur(15px);
+  backdrop-filter: blur(10px);
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(59, 130, 246, 0.1);
+  position: relative;
+  z-index: 1; /* Lower z-index so it doesn't cover the dropdown */
 }
 
 .metric-section h3 {
@@ -1446,4 +1554,73 @@
   .metric-card {
     padding: 0.875rem;
   }
+} 
+
+/* Clickable Widget Styles */
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.stat-card.clickable:active {
+  transform: translateY(-2px);
+  transition: transform 0.1s ease;
+}
+
+.stat-card.clickable::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.stat-card.clickable:hover::after {
+  opacity: 1;
+} 
+
+/* Force all content below the dropdown */
+.dashboard-content,
+.metrics-grid,
+.metric-section,
+.stat-card,
+.widget-actions {
+  z-index: 1 !important;
+  position: relative;
+}
+
+/* Ensure the dropdown container has the highest priority */
+.nav-tab-container {
+  position: relative;
+  z-index: 9999; /* Match the dropdown z-index */
+  isolation: isolate;
+} 
+
+/* Profile photo preview in settings */
+.profile-photo-preview {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.profile-photo-preview-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 } 
