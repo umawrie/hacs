@@ -100,7 +100,7 @@ function App() {
       console.log('Attempting login with:', { email, password });
       try {
         console.log('Making POST request to /api/auth/login');
-        const response = await axios.post('/api/auth/login', {
+        const response = await axios.post('/', {
           email,
           password
         })
