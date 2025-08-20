@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, data } from 'react-router-dom';
 import './App.css';
 import Dashboard from './Dashboard';
+import Register from './Register'
+import axios from 'axios';
+import { Toaster, toast } from 'react-hot-toast'
+
+axios.defaults.baseURL = 'http://localhost:8000';
+axios.defaults.withCredentials = true;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showRegistration, setShowRegistration] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-
-
-  // Check if user is already logged in on app start
-  useEffect(() => {
-    const savedUser = localStorage.getItem('hacs_current_user');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-      setIsAuthenticated(true);
-    }
-  }, []);
+  const [data, setData] = useState({
+    email: '',
+    password: ''
+  })
 
   const handleClickAnywhere = () => {
     if (!isAnimating) {
@@ -35,182 +29,37 @@ function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setShowRegistration(false);
-    setCurrentUser(null);
-    localStorage.removeItem('hacs_current_user');
-    setErrorMessage('');
   };
 
-  const handleShowRegistration = () => {
-    setShowRegistration(true);
-    setErrorMessage('');
-  };
-
-  const handleBackToLogin = () => {
-    setShowRegistration(false);
-    setErrorMessage('');
-  };
-
-  const showError = (message) => {
-    setErrorMessage(message);
-    setTimeout(() => setErrorMessage(''), 5000);
-  };
-
-  const clearForm = (formElement) => {
-    formElement.reset();
-  };
-
-
+  
 
   // Homepage Component
-  const Homepage = () => {
+  const Homepage =  () => {
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
       e.preventDefault();
-      setIsLoading(true);
-      setErrorMessage('');
-      
-      const formData = new FormData(e.target);
-      const username = formData.get('username');
-      const password = formData.get('password');
-
-      // Call MongoDB backend API
-      fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
-          showError(data.error);
-        } else {
-          setCurrentUser(data.user);
+      const {email, password} = data
+      try {
+        const{data} = await axios.post('/', {
+          email,
+          password
+        })
+        if(data.error){
+          toast.error(data.error)
+        } else{
           setIsAuthenticated(true);
-          localStorage.setItem('hacs_current_user', JSON.stringify(data.user));
           navigate('/dashboard');
         }
-      })
-      .catch(error => {
-        console.error('Login error:', error);
-        showError('Network error. Please try again.');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      } catch (error) {
+        
+      }
+      
     };
 
-    const handleRegistration = (e) => {
-      e.preventDefault();
-      setIsLoading(true);
-      setErrorMessage('');
-      
-      const formData = new FormData(e.target);
-      
-      const newUser = {
-        id: Date.now().toString(),
-        firstName: formData.get('firstName').trim(),
-        lastName: formData.get('lastName').trim(),
-        email: formData.get('email').trim().toLowerCase(),
-        username: formData.get('username').trim(),
-        password: formData.get('password'),
-        confirmPassword: formData.get('confirmPassword'),
-        createdAt: new Date().toISOString(),
-        profilePhoto: null,
-        settings: {
-          profile: {
-            firstName: formData.get('firstName').trim(),
-            lastName: formData.get('lastName').trim(),
-            email: formData.get('email').trim().toLowerCase(),
-            profilePhoto: null
-          },
-          account: {
-            language: 'English',
-            region: 'United States',
-            timezone: 'UTC',
-            dateFormat: 'MM/DD/YYYY',
-            numberFormat: '1,234.56'
-          },
-          notifications: {
-            emailNotifications: true,
-            pushNotifications: true,
-            marketingPreferences: false
-          },
-          privacy: {
-            loginActivity: [],
-            connectedDevices: []
-          },
-          billing: {
-            paymentMethods: [],
-            invoiceHistory: [],
-            plan: 'Basic'
-          },
-          help: {
-            contactSupport: 'support@hacs.com',
-            knowledgeBase: 'https://help.hacs.com'
-          }
-        }
-      };
-
-      // Validation
-      if (newUser.password.length < 6) {
-        showError('Password must be at least 6 characters long.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (newUser.password !== newUser.confirmPassword) {
-        showError('Passwords do not match. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (newUser.username.length < 3) {
-        showError('Username must be at least 3 characters long.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Call MongoDB backend API for registration
-      fetch('http://localhost:8000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          email: newUser.email,
-          username: newUser.username,
-          password: newUser.password
-        }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
-          showError(data.error);
-        } else {
-          setCurrentUser(data.user);
-          setIsAuthenticated(true);
-          localStorage.setItem('hacs_current_user', JSON.stringify(data.user));
-          
-          // Show success message and clear form
-          alert(`Account created successfully! Welcome to HACS, ${data.user.firstName}!`);
-          clearForm(e.target);
-          
-          navigate('/dashboard');
-        }
-      })
-      .catch(error => {
-        console.error('Registration error:', error);
-        showError('Network error. Please try again.');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    const toRegisterPage = (e) => {
+      e.preventDefault()
+      navigate('/register')
     };
 
     return (
@@ -230,7 +79,7 @@ function App() {
             <div className="hero-content">
               <div className="logo-container">
                 <div className="logo-wrapper">
-                  <img src="./NEWHACSLogo.jpg" alt="HACS Logo" className="company-logo" />
+                  <img src="/NEWHACSLogo.jpg" alt="HACS Logo" className="company-logo" />
                   <div className="logo-glow"></div>
                   <div className="logo-particles">
                     <div className="logo-particle"></div>
@@ -252,102 +101,38 @@ function App() {
               </div>
             </div>
           </div>
-        ) : !showRegistration ? (
+        ) : (
+          
           <div className="login-screen">
             <div className="login-header">
               <div className="login-logo">
-                <img src="./NEWHACSLogo.jpg" alt="HACS Logo" className="login-logo-img" />
+                <img src="/NEWHACSLogo.jpg" alt="HACS Logo" className="login-logo-img" />
               </div>
               <h2>System Access</h2>
               <div className="login-status">
                 <div className="status-indicator"></div>
               </div>
             </div>
-            {errorMessage && (
-              <div className="error-message">
-                {errorMessage}
-              </div>
-            )}
             <form className="login-form" onSubmit={handleLogin}>
               <div className="input-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Enter your username" required />
+                <label>Email</label>
+                <input type="text" placeholder="Enter your email" value = {data.email} onChange = {(e) => setData({...data, email: e.target.value})} required />
                 <div className="input-border"></div>
               </div>
               <div className="input-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="Enter your password" required />
+                <input type="password" placeholder="Enter your password" value = {data.password} onChange = {(e) => setData({...data, password: e.target.value})} required />
                 <div className="input-border"></div>
               </div>
-              <button type="submit" className="primary-btn" disabled={isLoading}>
-                <span>{isLoading ? 'Signing In...' : 'Sign In'}</span>
-                <div className="button-glow"></div>
-              </button>
-              <button type="button" className="secondary-btn" onClick={handleShowRegistration} disabled={isLoading}>
-                <span>Create New Account</span>
+              <button type="submit">
+                <span>Sign In</span>
                 <div className="button-glow"></div>
               </button>
             </form>
-          </div>
-        ) : (
-          <div className="registration-screen">
-            <div className="registration-header">
-              <div className="registration-logo">
-                <img src="./NEWHACSLogo.jpg" alt="HACS Logo" className="login-logo-img" />
-              </div>
-              <h2>Create Account</h2>
-              <div className="back-to-login">
-                <button type="button" className="back-btn" onClick={handleBackToLogin}>
-                  ← Back to Login
-                </button>
-              </div>
-            </div>
-            {errorMessage && (
-              <div className="error-message">
-                {errorMessage}
-              </div>
-            )}
-            <form className="registration-form" onSubmit={handleRegistration}>
-              <div className="form-row">
-                <div className="input-group">
-                  <label>First Name</label>
-                  <input type="text" name="firstName" placeholder="Enter your first name" required />
-                  <div className="input-border"></div>
-                </div>
-                <div className="input-group">
-                  <label>Last Name</label>
-                  <input type="text" name="lastName" placeholder="Enter your last name" required />
-                  <div className="input-border"></div>
-                </div>
-              </div>
-              <div className="input-group">
-                <label>Email Address</label>
-                <input type="email" name="email" placeholder="Enter your email" required />
-                <div className="input-border"></div>
-              </div>
-              <div className="input-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Choose a username" required />
-                <div className="input-border"></div>
-              </div>
-              <div className="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Create a password" required />
-                <div className="input-border"></div>
-              </div>
-              <div className="input-group">
-                <label>Confirm Password</label>
-                <input type="password" name="confirmPassword" placeholder="Confirm your password" required />
-                <div className="input-border"></div>
-              </div>
-              <div className="terms-checkbox">
-                <input type="checkbox" id="terms" required />
-                <label htmlFor="terms">
-                  I agree to the <button type="button" className="terms-link">Terms of Service</button> and <button type="button" className="terms-link">Privacy Policy</button>
-                </label>
-              </div>
-              <button type="submit" className="primary-btn" disabled={isLoading}>
-                <span>{isLoading ? 'Creating Account...' : 'Create Account'}</span>
+            <br></br>
+            <form className="registerButton" onSubmit={toRegisterPage}>
+              <button type="submit">
+                <span>Create New Account</span>
                 <div className="button-glow"></div>
               </button>
             </form>
@@ -358,6 +143,8 @@ function App() {
   };
 
   return (
+    <>
+    <Toaster position='bottom-right' toastOptions={{duration: 2000}} />
     <Router>
       <Routes>
         <Route path="/" element={<Homepage />} />
@@ -365,7 +152,17 @@ function App() {
           path="/dashboard" 
           element={
             isAuthenticated ? (
-              <Dashboard onLogout={handleLogout} currentUser={currentUser} />
+              <Dashboard onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            isAuthenticated ? (
+              <Register onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )
@@ -373,6 +170,7 @@ function App() {
         />
       </Routes>
     </Router>
+    </>
   );
 }
 
