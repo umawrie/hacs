@@ -7,7 +7,12 @@ const userSchema = new Schema({
         type: String,
         unique: true
     },
-    password: String
+    password: String,
+    adr: [Number],
+    revenue: [Number],
+    adrVSrevpar: [Number],
+    occupancyRate: [Number],
+    guestSatisfaction: [Number],
 })
 
 const UserModel = mongoose.model('User', userSchema)

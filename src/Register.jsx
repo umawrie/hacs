@@ -31,7 +31,7 @@ export default function Register({ onBackToLogin }) {
 
         try {
             console.log('Making registration request to /api/auth/register');
-            const response = await axios.post('/', {
+            const response = await axios.post('/register', {
                 username, email, password
             })
             console.log('Registration response:', response.data);

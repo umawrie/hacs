@@ -30,11 +30,18 @@ const registerUser = async (req, res) =>{
             })
         }
 
+        
+
         const hashedPassword = await hashPassword(password)
         const user = await User.create({
             username, 
             email, 
-            password: hashedPassword
+            password: hashedPassword,
+            adr: generateRandomNumbers(5, 100, 200),
+            revenue: generateRandomNumbers(5, 1000000, 3000000),
+            adrVSrevpar: generateRandomNumbers(5, 100, 200),
+            occupancyRate: generateRandomNumbers(5, 60, 99),
+            guestSatisfaction: generateRandomNumbers(5, 4, 5),
         })
 
         return res.json(user)
@@ -67,6 +74,16 @@ const loginUser = async (req, res) => {
         console.log(error)
     }
 }
+
+function generateRandomNumbers(count, min, max) {
+    const numbers = [];
+    for (let i = 0; i < count; i++) {
+        const num = min + Math.floor(Math.random() * max);
+        numbers.push(num);
+    }
+    return numbers;
+}
+
 
 /*
 const setData = async (req, res) => {
