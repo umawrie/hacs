@@ -41,7 +41,7 @@ const registerUser = async (req, res) =>{
             revenue: generateRandomNumbers(5, 1000000, 3000000),
             adrVSrevpar: generateRandomNumbers(5, 100, 200),
             occupancyRate: generateRandomNumbers(5, 60, 99),
-            guestSatisfaction: generateRandomNumbers(5, 4, 5),
+            guestSatisfaction: generateRandomNumbers(5, 3, 5),
         })
 
         return res.json(user)
@@ -78,7 +78,7 @@ const loginUser = async (req, res) => {
 function generateRandomNumbers(count, min, max) {
     const numbers = [];
     for (let i = 0; i < count; i++) {
-        const num = min + Math.floor(Math.random() * max);
+        const num = (min + (Math.random() * (max - min))).toFixed(2);
         numbers.push(num);
     }
     return numbers;
