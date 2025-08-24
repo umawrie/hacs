@@ -108,6 +108,7 @@ function App() {
         if(response.data.error){
           toast.error(response.data.error)
         } else{
+          sessionStorage.setItem("email", email)
           setIsAuthenticated(true);
           setCurrentView('dashboard');
         }

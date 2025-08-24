@@ -84,16 +84,25 @@ function generateRandomNumbers(count, min, max) {
     return numbers;
 }
 
+const getUserData = async (req, res) => {
+    try{
+    const { email } = req.query
 
-/*
-const setData = async (req, res) => {
-    try {
-        const {adr, adrdiff,  revenue, revdiff,  vsrevpar, vsrevdiff, occupancy, occdiff, guestsat, guestdiff}
-    }
-}*/
+    const user = await User.findOne({email})
+
+    return res.json({
+        user
+    })
+}
+catch (error) {
+    console.log(error)
+}
+}
+
 
 module.exports = {
     test,
     registerUser,
-    loginUser
+    loginUser,
+    getUserData
 }

@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
+import axios from 'axios';
 
 const Dashboard = ({ onLogout, currentUser }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [hoveredWidget, setHoveredWidget] = useState(null);
   const [analyticsDropdownOpen, setAnalyticsDropdownOpen] = useState(false);
+
+  //getting the userData
+  const [userData, setUserData] = useState([]);
+
+  useEffect(() =>{
+    const email = sessionStorage.getItem("email")
+    axios.get("/userData", {
+      params: {email}
+  })
+    .then(response => {
+      setUserData(response.data)
+    })
+    .catch(error => {
+      console.log(sessionStorage.getItem("email"))
+      console.error("Axios error:", error)
+    });
+  }, [])
+
   const [settings, setSettings] = useState(() => {
     if (currentUser && currentUser.settings) {
       return currentUser.settings;
