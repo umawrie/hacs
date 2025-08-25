@@ -5,16 +5,18 @@ import {toast} from 'react-hot-toast'
 export default function Register({ onBackToLogin }) {
     const [data, setData] = useState({
         username: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
     })
 
     const registerUser = async (e) => {
         e.preventDefault()
-        const {username, email, password} = data
+        const {username, firstName, lastName, email, password} = data
         
         // Validation
-        if (!username || !email || !password) {
+        if (!username || !firstName || !lastName || !email || !password) {
             toast.error('All fields are required');
             return;
         }
@@ -32,7 +34,7 @@ export default function Register({ onBackToLogin }) {
         try {
             console.log('Making registration request to /api/auth/register');
             const response = await axios.post('/register', {
-                username, email, password
+                username, firstName, lastName, email, password
             })
             console.log('Registration response:', response.data);
             if(response.data.error){
@@ -66,6 +68,30 @@ export default function Register({ onBackToLogin }) {
             </div>
             
             <form onSubmit={registerUser} className="register-form">
+                <div className="input-group">
+                    <label>First Name</label>
+                    <input 
+                        type='text' 
+                        placeholder='Enter your first name' 
+                        value={data.firstName} 
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        required 
+                    />
+                    <div className="input-border"></div>
+                </div>
+                
+                <div className="input-group">
+                    <label>Last Name</label>
+                    <input 
+                        type='text' 
+                        placeholder='Enter your last name' 
+                        value={data.lastName} 
+                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                        required 
+                    />
+                    <div className="input-border"></div>
+                </div>
+                
                 <div className="input-group">
                     <label>Username</label>
                     <input 

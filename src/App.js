@@ -107,10 +107,18 @@ function App() {
         console.log('Login response:', response.data);
         if(response.data.error){
           toast.error(response.data.error)
-        } else{
-          sessionStorage.setItem("email", email)
+        } else if(response.data.success && response.data.user){
+          // Save user data to sessionStorage
+          sessionStorage.setItem("email", response.data.user.email)
+          sessionStorage.setItem("firstName", response.data.user.firstName)
+          sessionStorage.setItem("lastName", response.data.user.lastName)
+          sessionStorage.setItem("username", response.data.user.username)
+          sessionStorage.setItem("userId", response.data.user.id)
+          
           setIsAuthenticated(true);
           setCurrentView('dashboard');
+        } else{
+          toast.error('Login successful but user data not received')
         }
       } catch (error) {
         console.error('Login error details:', error);

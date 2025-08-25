@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
 import axios from 'axios';
+import ChartComponent from './components/ChartComponent';
 
 const Dashboard = ({ onLogout, currentUser }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -9,18 +10,26 @@ const Dashboard = ({ onLogout, currentUser }) => {
 
   //getting the userData
   const [userData, setUserData] = useState([]);
+  const [userDataLoading, setUserDataLoading] = useState(true);
+  const [userDataError, setUserDataError] = useState(null);
 
   useEffect(() =>{
     const email = sessionStorage.getItem("email")
+    setUserDataLoading(true);
+    setUserDataError(null);
+    
     axios.get("/userData", {
       params: {email}
   })
     .then(response => {
       setUserData(response.data)
+      setUserDataLoading(false);
     })
     .catch(error => {
       console.log(sessionStorage.getItem("email"))
       console.error("Axios error:", error)
+      setUserDataError("Failed to load user data");
+      setUserDataLoading(false);
     });
   }, [])
 
@@ -315,6 +324,46 @@ const Dashboard = ({ onLogout, currentUser }) => {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>Account Information</h3>
+                {userDataLoading && (
+                  <div className="user-data-loading">
+                    <div className="loading-spinner"></div>
+                    <p>Loading your account data...</p>
+                  </div>
+                )}
+                {userDataError && (
+                  <div className="user-data-error">
+                    <p>⚠️ {userDataError}</p>
+                    <button onClick={() => window.location.reload()} className="retry-btn">
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {!userDataLoading && !userDataError && userData && userData.length > 0 && (
+                  <div className="user-data-grid">
+                    {userData.map((data, index) => (
+                      <div key={index} className="user-data-card">
+                        <h4>Account Data {index + 1}</h4>
+                        <div className="data-content">
+                          {Object.entries(data).map(([key, value]) => (
+                            <div key={key} className="data-item">
+                              <span className="data-label">{key}:</span>
+                              <span className="data-value">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!userDataLoading && !userDataError && (!userData || userData.length === 0) && (
+                  <div className="user-data-empty">
+                    <p>No account data available yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -755,7 +804,9 @@ const Dashboard = ({ onLogout, currentUser }) => {
       <main className="dashboard-main">
         {activeTab === 'overview' && (
           <div className="dashboard-content">
-            <h2>Welcome back, {settings.profile.firstName} {settings.profile.lastName}</h2>
+            <h2>Welcome Back!</h2>
+            
+
             
             <div className="stats-grid">
               <div 
@@ -835,18 +886,33 @@ const Dashboard = ({ onLogout, currentUser }) => {
           <div className="dashboard-content">
             <h2>ADR Reports Dashboard</h2>
             
-            <div className="metrics-grid">
-              <div className="metric-section">
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Trend Analysis</h4>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Competitive Analysis</h4>
-                    <button className="metric-btn">Compare</button>
-                  </div>
-                </div>
+            <div className="charts-grid">
+              <div className="chart-section">
+                <h3>ADR Trend Analysis</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    values: [189, 195, 182, 198, 205, 212],
+                    comparisonValues: [175, 180, 178, 185, 190, 195]
+                  }}
+                  title="ADR Trends (6 Months)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Competitive ADR Analysis</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['Your Hotel', 'Competitor A', 'Competitor B', 'Competitor C', 'Market Avg'],
+                    values: [189, 175, 182, 168, 178],
+                    comparisonValues: [195, 180, 185, 172, 182]
+                  }}
+                  title="ADR Comparison"
+                  height={300}
+                />
               </div>
             </div>
           </div>
@@ -856,26 +922,61 @@ const Dashboard = ({ onLogout, currentUser }) => {
           <div className="dashboard-content">
             <h2>Occupancy Rate Dashboard</h2>
             
-            <div className="metrics-grid">
-              <div className="metric-section">
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Trend Analysis</h4>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Competitive Analysis</h4>
-                    <button className="metric-btn">Compare</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Occupancy Prediction</h4>
-                    <button className="metric-btn">View Prediction</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Occupancy Index</h4>
-                    <button className="metric-btn">View Index</button>
-                  </div>
-                </div>
+            <div className="charts-grid">
+              <div className="chart-section">
+                <h3>Occupancy Trend Analysis</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    values: [87, 82, 89, 91, 88, 92],
+                    comparisonValues: [82, 78, 85, 88, 85, 89]
+                  }}
+                  title="Occupancy Rate Trends (6 Months)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Competitive Occupancy Analysis</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['Your Hotel', 'Competitor A', 'Competitor B', 'Competitor C', 'Market Avg'],
+                    values: [87, 82, 85, 79, 83],
+                    comparisonValues: [92, 88, 90, 84, 87]
+                  }}
+                  title="Occupancy Rate Comparison"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Occupancy Prediction</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    values: [94, 96, 89, 85, 88, 95],
+                    comparisonValues: [90, 92, 86, 82, 85, 92]
+                  }}
+                  title="Occupancy Forecast (6 Months)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Occupancy Index</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    values: [1.05, 0.98, 1.12, 1.08],
+                    comparisonValues: [1.02, 0.95, 1.08, 1.05]
+                  }}
+                  title="Occupancy Index (Current Month)"
+                  height={300}
+                />
               </div>
             </div>
           </div>
@@ -885,18 +986,61 @@ const Dashboard = ({ onLogout, currentUser }) => {
           <div className="dashboard-content">
             <h2>ADR vs RevPAR Dashboard</h2>
             
-            <div className="metrics-grid">
-              <div className="metric-section">
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Trend Analysis</h4>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Competitive Analysis</h4>
-                    <button className="metric-btn">Compare</button>
-                  </div>
-                </div>
+            <div className="charts-grid">
+              <div className="chart-section">
+                <h3>ADR vs RevPAR Trend Analysis</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    values: [164, 160, 162, 180, 180, 195],
+                    comparisonValues: [189, 195, 182, 198, 205, 212]
+                  }}
+                  title="ADR vs RevPAR Trends (6 Months)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>ADR vs RevPAR Comparison</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['Your Hotel', 'Competitor A', 'Competitor B', 'Competitor C', 'Market Avg'],
+                    values: [164, 144, 155, 133, 147],
+                    comparisonValues: [189, 175, 182, 168, 178]
+                  }}
+                  title="ADR vs RevPAR Comparison"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>RevPAR Efficiency Ratio</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    values: [0.87, 0.82, 0.89, 0.91, 0.88, 0.92],
+                    comparisonValues: [0.82, 0.78, 0.85, 0.88, 0.85, 0.89]
+                  }}
+                  title="RevPAR Efficiency (RevPAR/ADR)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Performance Metrics</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['ADR', 'RevPAR', 'Occupancy Rate', 'Efficiency'],
+                    values: [189, 164, 87, 0.87],
+                    comparisonValues: [195, 180, 92, 0.92]
+                  }}
+                  title="Key Performance Indicators"
+                  height={300}
+                />
               </div>
             </div>
           </div>
@@ -906,18 +1050,33 @@ const Dashboard = ({ onLogout, currentUser }) => {
           <div className="dashboard-content">
             <h2>Revenue Dashboard</h2>
             
-            <div className="metrics-grid">
-              <div className="metric-section">
-                <div className="metric-content">
-                  <div className="metric-card">
-                    <h4>Trend Analysis</h4>
-                    <button className="metric-btn">View Trends</button>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Competitive Analysis</h4>
-                    <button className="metric-btn">Compare</button>
-                  </div>
-                </div>
+            <div className="charts-grid">
+              <div className="chart-section">
+                <h3>Revenue Trend Analysis</h3>
+                <ChartComponent 
+                  type="line"
+                  data={{
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    values: [2400000, 2520000, 2380000, 2640000, 2720000, 2800000],
+                    comparisonValues: [2200000, 2300000, 2250000, 2400000, 2450000, 2500000]
+                  }}
+                  title="Revenue Trends (6 Months)"
+                  height={300}
+                />
+              </div>
+              
+              <div className="chart-section">
+                <h3>Revenue by Segment</h3>
+                <ChartComponent 
+                  type="bar"
+                  data={{
+                    labels: ['Room Revenue', 'F&B Revenue', 'Spa Revenue', 'Other Revenue'],
+                    values: [1800000, 600000, 200000, 200000],
+                    comparisonValues: [1700000, 550000, 180000, 180000]
+                  }}
+                  title="Revenue Breakdown"
+                  height={300}
+                />
               </div>
             </div>
           </div>
