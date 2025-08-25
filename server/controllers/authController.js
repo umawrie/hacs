@@ -7,10 +7,20 @@ const test = (req, res) => {
 
 const registerUser = async (req, res) =>{
     try{
-        const{username, email, password} = req.body
+        const{username, firstName, lastName, email, password} = req.body
         if(!username){
             return res.json({
                 error: 'username is required'
+            })
+        };
+        if(!firstName){
+            return res.json({
+                error: 'first name is required'
+            })
+        };
+        if(!lastName){
+            return res.json({
+                error: 'last name is required'
             })
         };
         if(!password || password.length < 8){
@@ -35,6 +45,8 @@ const registerUser = async (req, res) =>{
         const hashedPassword = await hashPassword(password)
         const user = await User.create({
             username, 
+            firstName,
+            lastName,
             email, 
             password: hashedPassword,
             adr: generateRandomNumbers(5, 100, 200),
@@ -63,7 +75,16 @@ const loginUser = async (req, res) => {
 
         const match = await comparePasswords(password, user.password)
         if(match) {
-            res.json('passwords match')
+            res.json({
+                success: true,
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email
+                }
+            })
         }
         else{
         return res.json({
@@ -98,6 +119,8 @@ catch (error) {
     console.log(error)
 }
 }
+
+
 
 
 module.exports = {
